@@ -1,3 +1,9 @@
+/*
+[TODO]
+- add coupon payment scheme to structure
+*/
+
+
 use pyo3::prelude::*;
 
 
@@ -27,7 +33,6 @@ pub struct OptionEmbeddedBond {
 }
 
 
-// [TODO] Implement a coupon structure
 #[pymethods]
 impl OptionEmbeddedBond {
     #[new]
@@ -41,7 +46,7 @@ impl OptionEmbeddedBond {
             option_rate,
             forward_curve,
             interest_vol,
-            binomial_tree: Vec::new(),
+        binomial_tree: Vec::new(),
         };
         bond.init();
         bond
