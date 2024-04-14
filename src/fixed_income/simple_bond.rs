@@ -1,7 +1,6 @@
 use pyo3::prelude::*;
 
 
-
 #[pyclass]
 pub struct SimpleBond {
     #[pyo3(get, set)]
@@ -53,8 +52,8 @@ impl SimpleBond {
         self.calc_convex();
     }
 
+    // Simple bond pricing formula assuming a flat interest rate curve
     fn calc_price(&mut self) {
-        // Simple bond pricing formula assuming a flat interest rate curve
         let n_coupons: f64 = (self.n_period as f64) * self.coupon_freq;
         let eff_rate: f64 = (1.0 + self.interest_rate).powf(1.0 / self.coupon_freq) - 1.0;
         let pv_coupons = self.coupon_amount * (1.0 - (1.0 + eff_rate).powf(-n_coupons)) / eff_rate;
@@ -93,6 +92,7 @@ impl SimpleBond {
         self.convexity = notional_term * cf_term;
     }
 
+    // Create vector of bond prices by interest rates
     fn plot_price_range(&self) -> PyResult<(Vec<f64>, Vec<f64>)> {
         // Create linear space of interest rate range      
         let n_rates = (self.interest_rate* 2.0 * 100.0 / 0.1).round() as i32;

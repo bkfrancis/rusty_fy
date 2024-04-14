@@ -2,7 +2,6 @@ use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
 
 
-
 #[derive(Clone)]
 #[pyclass]
 pub struct LinearFn {

@@ -123,7 +123,6 @@ impl CubicSpline {
         self.y_matrix[(rows - 2, 0)] = self.y[i];
 
         // Invert Matix
-        // self.m_matrix.try_inverse_mut();
         let m_inv = self.m_matrix.clone().try_inverse().unwrap();
         
         self.b_matrix = m_inv * &self.y_matrix;
