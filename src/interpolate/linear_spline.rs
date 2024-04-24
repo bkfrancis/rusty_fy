@@ -41,7 +41,7 @@ impl LinearSpline {
             params: Vec::new(),
         };
         linear_spline.calibrate();
-
+        
         Ok(linear_spline)
     }
 
@@ -91,7 +91,7 @@ impl LinearSpline {
                 }
             }
         }
-
+        
         Ok(spline_values)
     }
 }

@@ -95,7 +95,7 @@ impl OptionEmbeddedBond {
                     
                     left_i -= 1;
                 }
-
+                
                 Ok(())
             }
             _ => {
