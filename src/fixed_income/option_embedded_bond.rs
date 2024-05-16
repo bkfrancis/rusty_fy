@@ -1,10 +1,10 @@
 /*
 Calculates price of an option embedded bond using a binomial tree 
+- All rates stated as continously compounded 
 
 [TODO]
 - add coupon payment scheme to structure
 */
-
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
@@ -25,7 +25,6 @@ pub struct OptionEmbeddedBond {
     #[pyo3(get)]
     binomial_tree: Vec<BinomialTreeLevel>,
 }
-
 
 #[pymethods]
 impl OptionEmbeddedBond {
@@ -53,30 +52,27 @@ impl OptionEmbeddedBond {
             let nodes = n;
             let level = BinomialTreeLevel::new(
                 nodes,
-                &self.forward_curve[n],
-                &self.interest_vol 
+                self.forward_curve[n],
+                self.interest_vol 
             );
             self.binomial_tree.push(level);
         }
-
         self.calculate_tree()?;
 
         Ok(())
     }
 
-    // Calibrate tree & calculate price
     fn calculate_tree(&mut self) -> Result<(), PyErr> {        
-        let n = self.binomial_tree.len() - 1;
-        self.binomial_tree[n].calculate_last_layer_call(&self.notional, &self.option_rate);
-        
         match self.bond_option.as_str() {
             "call" => {
-                let mut left_i = self.binomial_tree.len() - 1;
+                let n = self.binomial_tree.len() - 1;
+                self.binomial_tree[n].calculate_last_layer_call(self.notional, self.option_rate);
                 
+                let mut left_i = self.binomial_tree.len() - 1;
                 while left_i > 0 {
                     let (left, right) = self.binomial_tree.split_at_mut(left_i);
-                    left[left.len()-1].calculate_leaf_node_call(
-                        &self.notional, &self.option_rate, &right[0].prices
+                    left[left.len()-1].calculate_branch_node_call(
+                        self.notional, self.option_rate, &right[0].prices
                     );
                     
                     left_i -= 1;
@@ -85,12 +81,14 @@ impl OptionEmbeddedBond {
                 Ok(())
             }
             "put" => {
-                let mut left_i = self.binomial_tree.len() - 1;
+                let n = self.binomial_tree.len() - 1;
+                self.binomial_tree[n].calculate_last_layer_put(self.notional, self.option_rate);
                 
+                let mut left_i = self.binomial_tree.len() - 1;
                 while left_i > 0 {
                     let (left, right) = self.binomial_tree.split_at_mut(left_i);
-                    left[left.len()-1].calculate_leaf_node_put(
-                        &self.notional, &self.option_rate, &right[0].prices
+                    left[left.len()-1].calculate_branch_node_put(
+                        self.notional, self.option_rate, &right[0].prices
                     );
                     
                     left_i -= 1;
@@ -115,14 +113,13 @@ struct BinomialTreeLevel {
     rates: Vec<f64>,
 }
 
-
 impl BinomialTreeLevel {
     pub fn new(
-        n: usize, rate: &f64, interest_vol: &f64
+        n: usize, rate: f64, interest_vol: f64
     ) -> Self { 
         let mut level = BinomialTreeLevel {
             prices: vec![0.0; n + 1],   // init vector of prices with zero
-            rates: vec![*rate; n + 1],   // init with base interest rate, map vol
+            rates: vec![rate; n + 1],   // init with base interest rate, map vol
         }; 
         level.calibrate_interest_paths(interest_vol);
 
@@ -130,21 +127,22 @@ impl BinomialTreeLevel {
     }
 
     // Calculate interest rate paths from interest rate volatility
-    fn calibrate_interest_paths(&mut self, interest_vol: &f64) {
+    fn calibrate_interest_paths(&mut self, interest_vol: f64) {
         let n = self.rates.len() as f64;
         self.rates.iter_mut().enumerate().for_each(|(index, value)| {
+            let i = index as f64;
             *value = *value 
-                * (*interest_vol * (-1.0 * (index as f64) + (n - (index as f64) - 1.0))).exp();
+                * (interest_vol * (-2.0 * i + n - 1.0)).exp();
         });
     }
 
     // Calculate the PV's at last layer
-    fn calculate_last_layer_call(&mut self, notional: &f64, option_rate: &f64) {
+    fn calculate_last_layer_call(&mut self, notional: f64, option_rate: f64) {
         let n = self.prices.len();
         for i in 0..n {
             let rate = self.rates[i];
-            if rate <= *option_rate {
-                self.prices[i] = *notional;
+            if rate <= option_rate {
+                self.prices[i] = notional;
             } else {
                 self.prices[i] = notional * (-1.0 * rate).exp();
             }
@@ -152,8 +150,8 @@ impl BinomialTreeLevel {
     }
 
     // Calculate probablilty weighted price with interest rate limit
-    pub fn calculate_leaf_node_call(
-        &mut self, notional: &f64, option_rate: &f64, prices: &Vec<f64>
+    pub fn calculate_branch_node_call(
+        &mut self, notional: f64, option_rate: f64, prices: &Vec<f64>
     ) {
         let n = self.prices.len();
         for (index, price) in self.prices.iter_mut().enumerate() {
@@ -161,8 +159,8 @@ impl BinomialTreeLevel {
             if n == 1 {
                 *price = (prices[index] * 0.5 + prices[index + 1] * 0.5)
                     * (-1.0 * self.rates[index]).exp();
-            } else if self.rates[index] <= *option_rate {
-                *price = *notional;
+            } else if self.rates[index] <= option_rate {
+                *price = notional;
             } else {
                 *price = (prices[index] * 0.5 + prices[index + 1] * 0.5) 
                     * (-1.0 * self.rates[index]).exp();
@@ -170,9 +168,22 @@ impl BinomialTreeLevel {
         }
     }
     
+    // Calculate the PV's at last layer
+    fn calculate_last_layer_put(&mut self, notional: f64, option_rate: f64) {
+        let n = self.prices.len();
+        for i in 0..n {
+            let rate = self.rates[i];
+            if rate >= option_rate {
+                self.prices[i] = notional;
+            } else {
+                self.prices[i] = notional * (-1.0 * rate).exp();
+            }
+        }
+    }
+
     // Calculate probability weighted prices with interest rate cap
-    pub fn calculate_leaf_node_put(
-        &mut self, notional: &f64, option_rate: &f64, prices: &Vec<f64>
+    pub fn calculate_branch_node_put(
+        &mut self, notional: f64, option_rate: f64, prices: &Vec<f64>
     ) {
         let n = self.prices.len();
         for (index, price) in self.prices.iter_mut().enumerate() {
@@ -180,8 +191,8 @@ impl BinomialTreeLevel {
             if n == 1 {
                 *price = (prices[index] * 0.5 + prices[index + 1] * 0.5)
                     * (-1.0 * self.rates[index]).exp();
-            } else if self.rates[index] >= *option_rate {
-                *price = *notional;
+            } else if self.rates[index] >= option_rate {
+                *price = notional;
             } else {
                 *price = (prices[index] * 0.5 + prices[index + 1] * 0.5) 
                     * (-1.0 * self.rates[index]).exp();

@@ -1,3 +1,8 @@
+/*
+Calcuates the price of a coupon paying bond
+*/
+
+
 use pyo3::prelude::*;
 
 

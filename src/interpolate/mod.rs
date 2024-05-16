@@ -1,4 +1,5 @@
 // Interpolation Module
+
 use pyo3::prelude::*;
 
 mod linear_spline;
