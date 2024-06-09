@@ -70,7 +70,6 @@ impl CubicSpline {
             - self.x[self.x.len() - 2]);
         self.m_matrix[(rows - 1, cols - 3)] = 2.0;
 
-
         // Calibrate inner matrix
         for i in 0..(self.x.len() - 2) {
             
@@ -145,11 +144,9 @@ impl CubicSpline {
         }
     }
 
-
     // Calculate y's given a vec of x's
     fn get_values(&mut self, x_input: Vec<f64>) -> PyResult<Vec<f64>> {
         let mut spline_values = Vec::new();
-
 
         for value in x_input.iter() {
             // Binary search of fns to calc y values
