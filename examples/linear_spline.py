@@ -1,6 +1,5 @@
 # Example of using linear spline interpolation
 
-
 from rusty_fy import interpolate
 import matplotlib.pyplot as plt
 import numpy as np

@@ -2,8 +2,8 @@
 
 use pyo3::prelude::*;
 
-mod linear_spline;
 mod cubic_spline;
+mod linear_spline;
 
 
 #[pymodule]

@@ -2,9 +2,9 @@
 [TODO]
 */
 
-use pyo3::prelude::*;
-use pyo3::exceptions::PyValueError;
 use nalgebra::DMatrix;
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 
 
 #[derive(Clone)]
@@ -37,7 +37,6 @@ pub struct CubicSpline {
     b_matrix: DMatrix<f64>,
 }
 
-
 #[pymethods]
 impl CubicSpline {
     #[new]
@@ -60,19 +59,18 @@ impl CubicSpline {
 
     fn calculate_coeff(&mut self) {
         let (rows, cols) = self.m_matrix.shape();
-        
+
         // Natural spline bounds
         // f0''(x0) = 0
         self.m_matrix[(0, 1)] = 2.0;
 
         // fi(xn) = yn
-        self.m_matrix[(rows - 1, cols - 4)] = 6.0 * (self.x[self.x.len() - 1] 
-            - self.x[self.x.len() - 2]);
+        self.m_matrix[(rows - 1, cols - 4)] =
+            6.0 * (self.x[self.x.len() - 1] - self.x[self.x.len() - 2]);
         self.m_matrix[(rows - 1, cols - 3)] = 2.0;
 
         // Calibrate inner matrix
         for i in 0..(self.x.len() - 2) {
-            
             // f(x0) = y0
             self.m_matrix[((i * 4) + 1, (i * 4) + 0)] = self.x[i].powi(3);
             self.m_matrix[((i * 4) + 1, (i * 4) + 1)] = self.x[i].powi(2);
@@ -100,12 +98,11 @@ impl CubicSpline {
             self.m_matrix[((i * 4) + 4, (i * 4) + 1)] = 2.0;
             self.m_matrix[((i * 4) + 4, (i * 4) + 4)] = -6.0 * (self.x[i + 1]);
             self.m_matrix[((i * 4) + 4, (i * 4) + 5)] = -2.0;
-
         }
-        
+
         // Last 2 conditions
         let i = self.x.len() - 1;
-        
+
         // fi-1(xn-1) = yn-1
         self.m_matrix[(rows - 3, cols - 4)] = self.x[i - 1].powi(3);
         self.m_matrix[(rows - 3, cols - 3)] = self.x[i - 1].powi(2);
@@ -122,14 +119,14 @@ impl CubicSpline {
 
         // Invert Matix
         let m_inv = self.m_matrix.clone().try_inverse().unwrap();
-        
+
         self.b_matrix = m_inv * &self.y_matrix;
     }
 
     // Setup the params params
     fn set_params(&mut self) {
         let (rows, _) = self.b_matrix.shape();
-        
+
         for i in 0..(rows / 4) {
             let cubic_fn = CubicFn {
                 x_lower: self.x[i],
@@ -152,19 +149,17 @@ impl CubicSpline {
             // Binary search of fns to calc y values
             let mut low = 0;
             let mut high = self.params.len() - 1;
-             
-            if (value < &self.params[0].x_lower) || 
-                (value > &self.params[self.params.len() - 1].x_upper) 
+
+            if (value < &self.params[0].x_lower)
+                || (value > &self.params[self.params.len() - 1].x_upper)
             {
                 return Err(PyValueError::new_err("Value not in spline range"));
             }
-            
+
             while low <= high {
                 let mid = (high + low) / 2;
-                
-                if (value >= &self.params[mid].x_lower) && 
-                    (value <= &self.params[mid].x_upper) 
-                {
+
+                if (value >= &self.params[mid].x_lower) && (value <= &self.params[mid].x_upper) {
                     let x = value;
                     let y = self.params[mid].a * x.powi(3)
                         + self.params[mid].b * x.powi(2)
@@ -172,15 +167,14 @@ impl CubicSpline {
                         + &self.params[mid].d;
 
                     spline_values.push(y);
-                    break 
+                    break;
                 } else if value < &self.params[mid].x_lower {
                     high = mid - 1;
                 } else if value > &self.params[mid].x_upper {
                     low = mid + 1;
-                } else {     
+                } else {
                     return Err(PyValueError::new_err("Value error"));
                 }
-           
             }
         }
 
@@ -202,7 +196,7 @@ impl CubicSpline {
         for row in self.b_matrix.row_iter() {
             vectors.push(row.iter().cloned().collect());
         }
-        
+
         Ok(vectors)
     }
 
@@ -211,8 +205,7 @@ impl CubicSpline {
         for row in self.y_matrix.row_iter() {
             vectors.push(row.iter().cloned().collect());
         }
-        
+
         Ok(vectors)
     }
-
 }

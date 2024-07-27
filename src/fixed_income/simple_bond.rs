@@ -4,6 +4,7 @@ Calcuates the price of a coupon paying bond
 
 use pyo3::prelude::*;
 
+
 #[pyclass]
 pub struct SimpleBond {
     #[pyo3(get, set)]

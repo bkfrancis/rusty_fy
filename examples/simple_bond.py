@@ -1,7 +1,6 @@
 # Example of calculating the price of a coupon paying bond
 # Interest rate stated as an annual rate
 
-
 from rusty_fy import fixed_income
 import matplotlib.pyplot as plt
 

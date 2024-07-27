@@ -1,7 +1,6 @@
 # Example of calculating the price of a callable bond
 # All rates stated as continously compounded
 
-
 from rusty_fy import fixed_income
 
 

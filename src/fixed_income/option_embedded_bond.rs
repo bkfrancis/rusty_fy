@@ -9,6 +9,7 @@ Calculates price of an option embedded bond using a binomial tree
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
+
 #[pyclass]
 pub struct OptionEmbeddedBond {
     #[pyo3(get, set)]
@@ -121,6 +122,7 @@ impl OptionEmbeddedBond {
         }
     }
 }
+
 
 #[derive(Clone)]
 #[pyclass]
