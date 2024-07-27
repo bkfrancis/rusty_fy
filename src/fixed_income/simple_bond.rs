@@ -2,9 +2,7 @@
 Calcuates the price of a coupon paying bond
 */
 
-
 use pyo3::prelude::*;
-
 
 #[pyclass]
 pub struct SimpleBond {
@@ -13,7 +11,7 @@ pub struct SimpleBond {
     #[pyo3(get, set)]
     n_period: i32,
     #[pyo3(get, set)]
-    coupon_amount: f64,  
+    coupon_amount: f64,
     #[pyo3(get, set)]
     coupon_freq: f64,
     #[pyo3(get)]
@@ -28,12 +26,15 @@ pub struct SimpleBond {
     convexity: f64,
 }
 
-
 #[pymethods]
 impl SimpleBond {
     #[new]
-    pub fn new (
-        notional: f64, n_period: i32, coupon_amount: f64, coupon_freq: f64, interest_rate: f64
+    pub fn new(
+        notional: f64,
+        n_period: i32,
+        coupon_amount: f64,
+        coupon_freq: f64,
+        interest_rate: f64,
     ) -> Self {
         let mut simple_bond = SimpleBond {
             notional,
@@ -62,7 +63,7 @@ impl SimpleBond {
         let n_coupons: f64 = (self.n_period as f64) * self.coupon_freq;
         let eff_rate: f64 = (1.0 + self.interest_rate).powf(1.0 / self.coupon_freq) - 1.0;
         let pv_coupons = self.coupon_amount * (1.0 - (1.0 + eff_rate).powf(-n_coupons)) / eff_rate;
-        
+
         let pv_notional = self.notional / (1.0 + self.interest_rate).powi(self.n_period);
         self.price = pv_coupons + pv_notional;
     }
@@ -73,16 +74,16 @@ impl SimpleBond {
         let n_coupons = (self.n_period as f64) * self.coupon_freq;
         let eff_rate: f64 = (1.0 + self.interest_rate).powf(1.0 / self.coupon_freq) - 1.0;
         for n in 1..=(n_coupons as i32) {
-            let pv_c = (n as f64) / (self.coupon_freq as f64) 
-                * self.coupon_amount / (1.0 + eff_rate).powi(n);
+            let pv_c = (n as f64) / (self.coupon_freq as f64) * self.coupon_amount
+                / (1.0 + eff_rate).powi(n);
             numerator += pv_c;
         }
 
-        numerator += ((self.n_period as f64) * self.notional) / 
-            (1.0 + self.interest_rate).powi(self.n_period);
-        
+        numerator += ((self.n_period as f64) * self.notional)
+            / (1.0 + self.interest_rate).powi(self.n_period);
+
         self.mac_duration = numerator / self.price;
-        self.mod_duration = 
+        self.mod_duration =
             self.mac_duration / (1.0 + (self.interest_rate / (self.coupon_freq as f64)));
     }
 
@@ -90,7 +91,7 @@ impl SimpleBond {
         let notional_term = 1.0 / (self.price * (1.0 + self.interest_rate).powi(2));
         let mut cf_term = 0.0;
         for t in 1..self.n_period {
-            let cf = self.coupon_amount * ((t as f64).powi(2) + (t as f64)) 
+            let cf = self.coupon_amount * ((t as f64).powi(2) + (t as f64))
                 / (1.0 + self.interest_rate).powi(t);
             cf_term += cf;
         }
@@ -99,17 +100,17 @@ impl SimpleBond {
 
     // Create vector of bond prices by interest rates
     fn plot_price_range(&self) -> PyResult<(Vec<f64>, Vec<f64>)> {
-        // Create linear space of interest rate range      
-        let n_rates = (self.interest_rate* 2.0 * 100.0 / 0.1).round() as i32;
+        // Create linear space of interest rate range
+        let n_rates = (self.interest_rate * 2.0 * 100.0 / 0.1).round() as i32;
         let int_rates_range: Vec<_> = (0..=n_rates).map(|x| (x as f64) * 0.001).collect();
 
         let mut price_range: Vec<f64> = Vec::new();
         for i in &int_rates_range {
             let n_coupons: f64 = (self.n_period as f64) * self.coupon_freq;
             let eff_rate: f64 = (1.0 + i).powf(1.0 / self.coupon_freq) - 1.0;
-            let pv_coupons = self.coupon_amount 
-                * (1.0 - (1.0 + eff_rate).powf(-n_coupons)) / eff_rate;
-        
+            let pv_coupons =
+                self.coupon_amount * (1.0 - (1.0 + eff_rate).powf(-n_coupons)) / eff_rate;
+
             let pv_notional = self.notional / (1.0 + i).powi(self.n_period);
             let price = pv_coupons + pv_notional;
 
@@ -119,4 +120,3 @@ impl SimpleBond {
         Ok((int_rates_range, price_range))
     }
 }
-

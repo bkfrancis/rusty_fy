@@ -2,9 +2,8 @@
 
 use pyo3::prelude::*;
 
-mod simple_bond;
 mod option_embedded_bond;
-
+mod simple_bond;
 
 #[pymodule]
 pub fn register_fixed_income(py: Python, parent_m: &PyModule) -> PyResult<()> {
